@@ -1,19 +1,27 @@
-# -*- coding: utf-8 -*-
 """
 (c) 2006-2013, Armin Rigo, Holger Krekel, Maciej Fijalkowski
 """
 
+from __future__ import annotations
 
-def serve_rsync(channel):
+from typing import TYPE_CHECKING
+from typing import Literal
+from typing import cast
+
+if TYPE_CHECKING:
+    from execnet.gateway_base import Channel
+
+
+def serve_rsync(channel: Channel) -> None:
     import os
-    import stat
     import shutil
+    import stat
     from hashlib import md5
 
-    destdir, options = channel.receive()
+    destdir, options = cast("tuple[str, dict[str, object]]", channel.receive())
     modifiedfiles = []
 
-    def remove(path):
+    def remove(path: str) -> None:
         assert path.startswith(destdir)
         try:
             os.unlink(path)
@@ -21,7 +29,7 @@ def serve_rsync(channel):
             # assume it's a dir
             shutil.rmtree(path, True)
 
-    def receive_directory_structure(path, relcomponents):
+    def receive_directory_structure(path: str, relcomponents: list[str]) -> None:
         try:
             st = os.lstat(path)
         except OSError:
@@ -35,11 +43,15 @@ def serve_rsync(channel):
                 os.makedirs(path)
             mode = msg.pop(0)
             if mode:
-                os.chmod(path, mode)
+                # Ensure directories are writable, otherwise a
+                # permission denied error (EACCES) would be raised
+                # when attempting to receive read-only directory
+                # structures.
+                os.chmod(path, mode | 0o700)
             entrynames = {}
             for entryname in msg:
                 destpath = os.path.join(path, entryname)
-                receive_directory_structure(destpath, relcomponents + [entryname])
+                receive_directory_structure(destpath, [*relcomponents, entryname])
                 entrynames[entryname] = True
             if options.get("delete"):
                 for othername in os.listdir(path):
@@ -59,7 +71,7 @@ def serve_rsync(channel):
                         checksum = md5(f.read()).digest()
                         f.close()
                     elif msg_mode and msg_mode != st.st_mode:
-                        os.chmod(path, msg_mode)
+                        os.chmod(path, msg_mode | 0o700)
                         return
                     else:
                         return  # already fine
@@ -74,11 +86,11 @@ def serve_rsync(channel):
     channel.send(("list_done", None))
 
     for path, (mode, time, size) in modifiedfiles:
-        data = channel.receive()
+        data = cast(bytes, channel.receive())
         channel.send(("ack", path[len(destdir) + 1 :]))
         if data is not None:
             if STRICT_CHECK and len(data) != size:
-                raise IOError("file modified during rsync: {!r}".format(path))
+                raise OSError(f"file modified during rsync: {path!r}")
             f = open(path, "wb")
             f.write(data)
             f.close()
@@ -94,7 +106,9 @@ def serve_rsync(channel):
     msg = channel.receive()
     while msg != 42:
         # we get symlink
-        _type, relpath, linkpoint = msg
+        _type, relpath, linkpoint = cast(
+            "tuple[Literal['linkbase', 'link'], str, str]", msg
+        )
         path = os.path.join(destdir, relpath)
         try:
             remove(path)
@@ -111,4 +125,4 @@ def serve_rsync(channel):
 
 
 if __name__ == "__channelexec__":
-    serve_rsync(channel)  # noqa
+    serve_rsync(channel)  # type: ignore[name-defined]  # noqa:F821

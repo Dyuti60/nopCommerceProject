@@ -1,23 +1,35 @@
+from selenium.webdriver.common.by import By
 class LoginPage:
     # Login Page
-    textbox_username_id = "Email"
-    textbox_password_id = "Password"
-    button_login_xpath = "//input[@value='Log in']"
-    link_logout_linktext = "Logout"
+    loginSignUp_Xpath='//a[contains(text(),"Signup")]'
+    textbox_email_name="email"
+    textbox_password_name="password"
+    button_login_xpath="//button[@type='submit' and contains(text(),'Login')]"
+    text_checkLoggedIn_Xpath='//a[contains(text(),"Logged in as")]'
 
     def __init__(self,driver):
         self.driver=driver
+        self.driver.implicitly_wait(20)
 
-    def setUserName(self, username):
-        self.driver.find_element_by_id(self.textbox_username_id).clear()
-        self.driver.find_element_by_id(self.textbox_username_id).send_keys(username)
+    def clickLoginSignupButton(self):
+        self.driver.find_element(By.XPATH,self.loginSignUp_Xpath).click()
+
+    def setEmail(self, email):
+        self.driver.find_element(By.NAME, self.textbox_email_name).clear()
+        self.driver.find_element(By.NAME, self.textbox_email_name).send_keys(email)
 
     def setPassword(self, password):
-        self.driver.find_element_by_id(self.textbox_password_id).clear()
-        self.driver.find_element_by_id(self.textbox_password_id).send_keys(password)
+        self.driver.find_element(By.NAME,self.textbox_password_name).clear()
+        self.driver.find_element(By.NAME,self.textbox_password_name).send_keys(password)
 
     def clickLogin(self):
-        self.driver.find_element_by_xpath(self.button_login_xpath).click()
+        self.driver.find_element(By.XPATH,self.button_login_xpath).click()
 
-    def clickLogout(self):
-        self.driver.find_element_by_link_text(self.link_logout_linktext).click()
+    def loggedInConfirmation(self):
+        count=self.driver.find_elements(By.XPATH,self.text_checkLoggedIn_Xpath)
+        if len(count)>0:
+            return True
+        else:
+            return False
+    def revertBackTologinPage(self,loginPageUrl):
+        self.driver.get(loginPageUrl)

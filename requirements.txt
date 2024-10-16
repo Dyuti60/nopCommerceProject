@@ -1,0 +1,13 @@
+selenium
+bs4
+pytest
+openpyxl
+pytest-html
+pytest-xdist
+Allure-pytest
+pypiwin32
+pillow
+python-docx
+python-dotenv
+webdriver-manager
+#-e .
