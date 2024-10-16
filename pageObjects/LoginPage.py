@@ -10,6 +10,7 @@ class LoginPage:
     def __init__(self,driver):
         self.driver=driver
         self.driver.implicitly_wait(20)
+        
 
     def clickLoginSignupButton(self):
         self.driver.find_element(By.XPATH,self.loginSignUp_Xpath).click()
