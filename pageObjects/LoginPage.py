@@ -1,4 +1,5 @@
 from selenium.webdriver.common.by import By
+#pytest -s -v -m "sanity" --html=./Reports/report.html testCases/ --browser chrome
 class LoginPage:
     # Login Page
     loginSignUp_Xpath='//a[contains(text(),"Signup")]'
